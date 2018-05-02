@@ -9,8 +9,10 @@ import (
 
 // Program entry point.
 func main() {
-	fmt.Printf("Fix hyperlinks in HTML files.\n")
-	fixhref.FixHtmlHref("./doc")
+	err := fixhref.FixHtmlHref("./doc")
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 

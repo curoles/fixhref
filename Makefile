@@ -38,6 +38,33 @@ get:
 	#go get -u -v github.com/curoles/go-fun
 	#go get -u -v github.com/curoles/answer42
 
+define newline
+
+
+endef
+
+define HTML_HEADER_
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>$(1)</title>
+</head>
+<body>
+
+endef
+
+define HTML_HEADER
+$(subst $(newline),\n,$(call HTML_HEADER_,$(1)))
+endef
+
+define HTML_FOOTER_
+</body>
+</html>
+endef
+HTML_FOOTER:=$(subst $(newline),\n,${HTML_FOOTER_})
+
+
 #.PHONY: godoc
 #godoc:
 #	#go doc -u github.com/curoles/fixhref Foo
@@ -48,6 +75,14 @@ get:
 .PHONY: doc
 doc:
 	mkdir -p doc/g1
-	@echo "<html><head></head><body>" > doc/g1/doc1.html
+	@printf "$(call HTML_HEADER,Doc1)"  > doc/g1/doc1.html
 	markdown $(SOURCE_PATH)/doc/group1/doc1.md >> doc/g1/doc1.html
-	@echo "</body></html>" >> doc/g1/doc1.html
+	@printf "$(HTML_FOOTER)" >> doc/g1/doc1.html
+
+.PHONY: design_doc
+design_doc: SRC:=$(SOURCE_PATH)/fixhref/fixhref.go
+design_doc: DST:=doc/design.md
+design_doc: DST_HTML:=doc/design.html
+design_doc:
+	awk '/PROSE_BEGIN/{flag=1;next}/PROSE_END/{flag=0}flag' $(SRC) > $(DST)
+	pandoc $(DST) -f markdown -t html -s -o $(DST_HTML)
