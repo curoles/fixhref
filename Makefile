@@ -54,6 +54,10 @@ define HTML_HEADER_
 
 endef
 
+# HTML_HEADER and FOOTER usage example:
+# printf "$(call HTML_HEADER,Doc1)"  > doc/g1/doc1.html
+# markdown $(SOURCE_PATH)/doc/group1/doc1.md >> doc/g1/doc1.html
+# printf "$(HTML_FOOTER)" >> doc/g1/doc1.html
 define HTML_HEADER
 $(subst $(newline),\n,$(call HTML_HEADER_,$(1)))
 endef
@@ -65,19 +69,11 @@ endef
 HTML_FOOTER:=$(subst $(newline),\n,${HTML_FOOTER_})
 
 
-#.PHONY: godoc
-#godoc:
-#	#go doc -u github.com/curoles/fixhref Foo
-#	@echo "<html><head></head><body>" > 1.html
-#	godoc -html -index github.com/curoles/fixhref/fixhref >> 1.html
-#	@echo "</body></html>" >> 1.html
-
 .PHONY: doc
+doc: M2H:=-f markdown -t html -s
 doc:
 	mkdir -p doc/g1
-	@printf "$(call HTML_HEADER,Doc1)"  > doc/g1/doc1.html
-	markdown $(SOURCE_PATH)/doc/group1/doc1.md >> doc/g1/doc1.html
-	@printf "$(HTML_FOOTER)" >> doc/g1/doc1.html
+	pandoc $(SOURCE_PATH)/test/group1/doc1.md $(M2H) -o doc/g1/doc1.html
 
 .PHONY: design_doc
 design_doc: SRC:=$(SOURCE_PATH)/fixhref/fixhref.go
