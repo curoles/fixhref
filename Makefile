@@ -78,7 +78,7 @@ doc:
 .PHONY: design_doc
 design_doc: SRC:=$(SOURCE_PATH)/fixhref/fixhref.go
 design_doc: DST:=doc/design.md
-design_doc: DST_HTML:=doc/design.html
+design_doc: DST_HTML:=$(SOURCE_PATH)/web_doc/design.html
 design_doc:
 	awk '/PROSE_BEGIN/{flag=1;next}/PROSE_END/{flag=0}flag' $(SRC) > $(DST)
 	pandoc $(DST) -f markdown -t html -s -o $(DST_HTML)

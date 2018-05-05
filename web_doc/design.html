@@ -1,0 +1,126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="author" content="Igor Lesik" />
+  <title>Design of fixhref program</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+</head>
+<body>
+<div id="header">
+<h1 class="title">Design of fixhref program</h1>
+<h2 class="author">Igor Lesik</h2>
+</div>
+<p>Program <em>fixhref</em> fixes relative href links in a group of HTML files located in single root directory.</p>
+<p>Package <code>fixhref</code> export only one function, it is called <code>FixHtmlHref</code>. In this function we walk through all sub-directories of the root directory to visit every HTML file.</p>
+<div class="sourceCode" id="FixHtmlHref"><table class="sourceCode go numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre></td><td class="sourceCode"><pre><code class="sourceCode go">
+<span class="co">// Fixes relative hyperlinks in HTML files.</span>
+<span class="kw">func</span> FixHtmlHref(rootDirPath <span class="dt">string</span>) <span class="dt">error</span> {
+    err := filepath.Walk(rootDirPath,
+            <span class="kw">func</span>(path <span class="dt">string</span>, f os.FileInfo, err <span class="dt">error</span>) <span class="dt">error</span> {
+        <span class="kw">return</span> visitFile(path, f, err)
+    })
+    <span class="kw">return</span> err
+}</code></pre></td></tr></table></div>
+<p>Function <code>FixHtmlHref</code> calls function <code>visitFile</code> while walking inside root directory and visiting each file. Inside function <code>visitFile</code>, we first check that there was no error while walking, next we ignore directory files, at last we call function <code>visitHtmlFile</code> if currently visited file has .html extention.</p>
+<div class="sourceCode" id="visitFile"><table class="sourceCode go numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+</pre></td><td class="sourceCode"><pre><code class="sourceCode go">
+<span class="kw">func</span> visitFile(path <span class="dt">string</span>, f os.FileInfo, err <span class="dt">error</span>) <span class="dt">error</span> {
+    <span class="kw">switch</span> {
+    <span class="kw">case</span> err != <span class="ot">nil</span>:
+        <span class="kw">return</span> err
+    <span class="kw">case</span> f.IsDir() == <span class="ot">true</span>:
+        <span class="kw">return</span> <span class="ot">nil</span>
+    <span class="kw">case</span> filepath.Ext(path) == <span class="st">&quot;.html&quot;</span>:
+        <span class="kw">return</span> visitHtmlFile(path, f)
+    <span class="kw">default</span>:
+        <span class="kw">return</span> <span class="ot">nil</span>
+        }
+    <span class="kw">return</span> <span class="ot">nil</span>
+}</code></pre></td></tr></table></div>
+<p>Function <code>visitHtmlFile</code> opens the file for reading and writing and then calls <code>fixHtmlFile</code> providing the handle for open file and also <code>Reader</code> and <code>Writer</code> interfaces. We open the file for writing because we are going to modify the file in place, if it has broken links to be fixed.</p>
+<div class="sourceCode" id="visitHtmlFile"><table class="sourceCode go numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre></td><td class="sourceCode"><pre><code class="sourceCode go">
+<span class="kw">func</span> visitHtmlFile(path <span class="dt">string</span>, finfo os.FileInfo) <span class="dt">error</span> {
+    fmt.Printf(<span class="st">&quot;File %s...</span><span class="ch">\n</span><span class="st">&quot;</span>, path)
+    f, err := os.OpenFile(path, os.O_RDWR, <span class="dv">0666</span>)
+    <span class="kw">if</span> err != <span class="ot">nil</span> {
+        fmt.Printf(<span class="st">&quot;Error: can&#39;t open %s, %s</span><span class="ch">\n</span><span class="st">&quot;</span>, path, err.Error())
+        <span class="kw">return</span> err
+    }
+    <span class="kw">defer</span> f.Close()
+    <span class="kw">return</span> fixHtmlFile(path, finfo, f, bufio.NewReader(f), bufio.NewWriter(f))
+}</code></pre></td></tr></table></div>
+</body>
+</html>
